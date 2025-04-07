@@ -3,65 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>Agendar cita</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+    <div class="min-h-screen flex items-center justify-center p-6">
+        <div class="w-full max-w-2xl bg-white shadow-lg rounded-xl p-8">
+            <h1 class="text-3xl font-bold text-center mb-6 text-blue-600">Agenda tu cita</h1>
+
+            @if(session('success'))
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('agendar.guardar') }}" onsubmit="return validarFormulario()">
+                @csrf
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <input type="text" name="nombre" placeholder="Nombre completo" value="{{ old('nombre') }}" class="input" required>
+                    <input type="email" name="email" placeholder="Correo electrónico" value="{{ old('email') }}" class="input" required>
+                    <input type="text" name="telefono" placeholder="Teléfono" value="{{ old('telefono') }}" class="input" required>
+                    <input type="date" id="fecha" name="fecha" value="{{ old('fecha') }}" class="input" required>
+                </div>
+
+                <input type="hidden" name="hora" id="hora">
+
+                <div id="horarios-container" class="mb-4 flex flex-wrap gap-2">
+                    <p class="text-gray-500">Selecciona una fecha para ver los horarios disponibles.</p>
+                </div>
+
+                <textarea name="motivo" placeholder="Motivo de la cita (opcional)" class="input h-24 resize-none">{{ old('motivo') }}</textarea>
+
+                <button type="submit" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded font-semibold transition">
+                    Agendar cita
+                </button>
+            </form>
+        </div>
+    </div>
+
     <style>
-        .horario-btn {
-            padding: 10px 15px;
-            margin: 5px;
-            border: 1px solid #ccc;
-            background-color: #f0f0f0;
-            cursor: pointer;
-            display: inline-block;
-            border-radius: 5px;
-        }
-        .horario-btn.selected {
-            background-color: #00b894;
-            color: white;
-            font-weight: bold;
+        .input {
+            @apply w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500;
         }
     </style>
-</head>
-<body>
-    <h1>Agendar una cita</h1>
-
-    @if(session('success'))
-        <p style="color: green;">{{ session('success') }}</p>
-    @endif
-
-    @if($errors->any())
-        <ul style="color: red;">
-            @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    @endif
-
-    <form method="POST" action="{{ route('agendar.guardar') }}" onsubmit="return validarFormulario();">
-        @csrf
-
-        <label>Nombre:</label><br>
-        <input type="text" name="nombre" value="{{ old('nombre') }}"><br><br>
-
-        <label>Email:</label><br>
-        <input type="email" name="email" value="{{ old('email') }}"><br><br>
-
-        <label>Teléfono:</label><br>
-        <input type="text" name="telefono" value="{{ old('telefono') }}"><br><br>
-
-        <label>Fecha:</label><br>
-        <input type="date" name="fecha" id="fecha" value="{{ old('fecha') }}"><br><br>
-
-        <label>Horario:</label><br>
-        <div id="horarios-container">
-            <p>Selecciona una fecha para ver los horarios disponibles.</p>
-        </div>
-        <input type="hidden" name="hora" id="hora"><br><br>
-
-        <label>Motivo (opcional):</label><br>
-        <textarea name="motivo">{{ old('motivo') }}</textarea><br><br>
-
-        <button type="submit">Agendar cita</button>
-    </form>
 
     <script>
         const fechaInput = document.getElementById('fecha');
@@ -70,80 +53,63 @@
 
         fechaInput.addEventListener('change', function () {
             const fecha = this.value;
-            horariosContainer.innerHTML = '<p>Cargando horarios...</p>';
+            horariosContainer.innerHTML = '<p class="text-sm text-gray-400">Cargando horarios...</p>';
             horaHiddenInput.value = '';
 
             fetch(`/horarios-disponibles?fecha=${fecha}`)
                 .then(response => response.json())
                 .then(data => {
-    horariosContainer.innerHTML = '';
+                    horariosContainer.innerHTML = '';
 
-    // 👇 Mostrar mensaje si el día está completamente bloqueado
-    if (data.bloqueado) {
-        horariosContainer.innerHTML = `
-            <p style="color: red; font-weight: bold; padding: 10px; border: 1px solid red; border-radius: 5px; background-color: #ffe6e6;">
-                ${data.motivo}
-            </p>`;
-        return;
-    }
-
-    // 👇 Mostrar mensaje si no hay horarios disponibles (aunque no esté bloqueado)
-    if (data.disponibles.length === 0) {
-        horariosContainer.innerHTML = `
-            <p style="color: red; font-weight: bold; padding: 10px; border: 1px solid red; border-radius: 5px; background-color: #ffe6e6;">
-                No hay horarios disponibles para esta fecha. Por favor selecciona otro día.
-            </p>`;
-        return;
-    }
-
-    // 👇 Mostrar horarios disponibles como botones
-    data.disponibles.forEach(hora => {
-        const btn = document.createElement('div');
-        btn.className = 'horario-btn';
-        btn.textContent = hora;
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.horario-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            horaHiddenInput.value = hora;
-        });
-        horariosContainer.appendChild(btn);
-    });
-})
+                    if (data.motivo) {
+                        horariosContainer.innerHTML = `
+                            <p class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                ${data.motivo}
+                            </p>`;
+                        return;
+                    }
 
                     if (data.disponibles.length === 0) {
-    horariosContainer.innerHTML = `
-        <p style="color: red; font-weight: bold; padding: 10px; border: 1px solid red; border-radius: 5px; background-color: #ffe6e6;">
-            No hay horarios disponibles para esta fecha. Por favor selecciona otro día.
-        </p>`;
-    return;
+                        horariosContainer.innerHTML = `
+                            <p class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                                No hay horarios disponibles para esta fecha.
+                            </p>`;
+                        return;
                     }
 
                     data.disponibles.forEach(hora => {
-                        const btn = document.createElement('div');
-                        btn.className = 'horario-btn';
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'horario-btn px-4 py-2 m-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition';
                         btn.textContent = hora;
+
                         btn.addEventListener('click', () => {
-                            document.querySelectorAll('.horario-btn').forEach(b => b.classList.remove('selected'));
-                            btn.classList.add('selected');
+                            document.querySelectorAll('.horario-btn').forEach(b => {
+                                b.classList.remove('bg-green-600');
+                                b.classList.add('bg-blue-500');
+                            });
+
+                            btn.classList.remove('bg-blue-500');
+                            btn.classList.add('bg-green-600');
                             horaHiddenInput.value = hora;
                         });
+
                         horariosContainer.appendChild(btn);
                     });
                 })
                 .catch(() => {
-                    horariosContainer.innerHTML = '<p>Error al obtener los horarios.</p>';
+                    horariosContainer.innerHTML = '<p class="text-red-600">Error al obtener los horarios.</p>';
                 });
-        
+        });
 
         function validarFormulario() {
-        const horaSeleccionada = document.getElementById('hora').value;
-        if (!horaSeleccionada) {
-            alert('Por favor selecciona un horario antes de agendar tu cita.');
-            return false; // Detiene el envío
+            const horaSeleccionada = document.getElementById('hora').value;
+            if (!horaSeleccionada) {
+                alert('Por favor selecciona un horario antes de agendar tu cita.');
+                return false;
+            }
+            return true;
         }
-        return true;
-    }
-    
     </script>
 </body>
 </html>
