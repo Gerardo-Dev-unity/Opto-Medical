@@ -17,6 +17,9 @@ Route::view('/contacto', 'contacto');
 Route::get('/agendar', [App\Http\Controllers\CitaPublicaController::class, 'formulario']);
 Route::view('/blog', 'blog');
 Route::get('/', fn() => view('home'));
+Route::get('/servicios', function () {
+    return view('servicios');
+});
 
 
 
